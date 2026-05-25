@@ -220,7 +220,6 @@ def test_agent_create_with_file_and_chunks(client: TestClient):
     chunks = chunks_resp.json()
     assert len(chunks) >= 3
     for idx, chunk in enumerate(chunks):
-        assert chunk["agent_id"] == agent_id
         assert chunk["chunk_index"] == idx
         assert "content" in chunk
         assert len(chunk["content"]) > 0

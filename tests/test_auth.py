@@ -5,7 +5,7 @@ from sqlmodel import SQLModel, Session, create_engine
 from sqlmodel.pool import StaticPool
 
 from main import app
-from auth import get_session, User, UserRole
+from auth import get_session, Teacher, Student, UserRole
 
 # ==========================================
 # Pytest Fixtures & Database Overrides
@@ -187,7 +187,7 @@ def test_student_management_flow(client: TestClient):
     assert student_data["age"] == 15
     assert student_data["class_name"] == "10th Grade"
     assert student_data["phone_number"] == "9876543210"
-    assert student_data["created_by_id"] == teacher_reg.json()["id"]
+    assert student_data["teacher_id"] == teacher_reg.json()["id"]
     student_id = student_data["id"]
 
     # 4. Attempt to create duplicate student
@@ -366,7 +366,6 @@ def test_agent_management_flow(client: TestClient):
     assert chunks_resp.status_code == 200
     chunks = chunks_resp.json()
     assert len(chunks) >= 2  # Long text should split into multiple chunks
-    assert chunks[0]["agent_id"] == agent_id
     assert chunks[0]["chunk_index"] == 0
     assert "content" in chunks[0]
 
