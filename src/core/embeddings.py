@@ -14,8 +14,18 @@ def load_model():
     if _model is None:
         logger.info("Loading embedding model...")
         from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-        logger.info("Embedding model loaded.")
+        try:
+            # Try local cache first (fast, no network requests)
+            _model = SentenceTransformer(
+                "sentence-transformers/all-MiniLM-L6-v2",
+                local_files_only=True,
+            )
+            logger.info("Embedding model loaded from local cache.")
+        except Exception:
+            # Fallback: download from HuggingFace (first run only)
+            logger.info("Model not cached locally, downloading from HuggingFace...")
+            _model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+            logger.info("Embedding model downloaded and loaded.")
 
 
 def _get_model():
