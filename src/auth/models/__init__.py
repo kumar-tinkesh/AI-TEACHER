@@ -1,11 +1,12 @@
-from auth.models.user import User, UserRole, UserRegister, UserResponse, Token, TokenData, UserLogin
+from auth.models.user import Teacher, Student, UserRole, TeacherRegister, Token, TokenData, UserLogin, UserResponse
 
 __all__ = [
-    "User",
+    "Teacher",
+    "Student",
     "UserRole",
-    "UserRegister",
-    "UserResponse",
+    "TeacherRegister",
     "Token",
     "TokenData",
     "UserLogin",
+    "UserResponse",
 ]

@@ -4,13 +4,31 @@ from sqlmodel import Session, select
 
 from auth.database import get_session
 from auth.dependencies import get_current_user, RoleChecker
-from auth.models import User, UserRole, UserResponse
+from auth.models import Teacher, Student, UserRole, UserResponse
 from admin.students.models import StudentCreate, StudentUpdate
 from auth.security import hash_password
 from core.logging import get_logger
+from core.utils import generate_random_id
 
 logger = get_logger("admin.students")
 router = APIRouter(prefix="/admin/students", tags=["Admin - Students"])
+
+
+def _to_user_response(user):
+    is_teacher = isinstance(user, Teacher)
+    return {
+        "id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "role": "teacher" if is_teacher else "student",
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+        "phone_number": user.phone_number,
+        "age": getattr(user, "age", None),
+        "class_name": getattr(user, "class_name", None),
+        "teacher_id": getattr(user, "teacher_id", None),
+    }
+
 
 @router.post(
     "",
@@ -20,14 +38,14 @@ router = APIRouter(prefix="/admin/students", tags=["Admin - Students"])
 )
 def create_student(
     student_in: StudentCreate,
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
     Create a new student credential.
     Only accessible by users with the TEACHER role.
     """
-    statement = select(User).where(User.username == student_in.username)
+    statement = select(Student).where(Student.username == student_in.username)
     existing_user = db.exec(statement).first()
     if existing_user:
         logger.warning("Student creation failed: username '%s' already taken", student_in.username)
@@ -38,12 +56,12 @@ def create_student(
 
     hashed_pwd = hash_password(student_in.password)
 
-    new_student = User(
+    new_student = Student(
+        id=generate_random_id(db, Student, 10000, 99999),
         username=student_in.username,
         full_name=student_in.student_name,
         hashed_password=hashed_pwd,
-        role=UserRole.STUDENT,
-        created_by_id=teacher.id,
+        teacher_id=teacher.id,
         is_active=True,
         age=student_in.age,
         class_name=student_in.class_name,
@@ -57,7 +75,8 @@ def create_student(
         "Student created: id=%d username='%s' by teacher_id=%d",
         new_student.id, new_student.username, teacher.id
     )
-    return new_student
+    return _to_user_response(new_student)
+
 
 @router.get(
     "",
@@ -65,19 +84,17 @@ def create_student(
     dependencies=[Depends(RoleChecker([UserRole.TEACHER]))]
 )
 def list_students(
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
     List all students created by the current teacher.
     Only accessible by users with the TEACHER role.
     """
-    statement = select(User).where(
-        User.role == UserRole.STUDENT,
-        User.created_by_id == teacher.id
-    )
+    statement = select(Student).where(Student.teacher_id == teacher.id)
     students = db.exec(statement).all()
-    return students
+    return [_to_user_response(s) for s in students]
+
 
 @router.put(
     "/{student_id}",
@@ -87,7 +104,7 @@ def list_students(
 def update_student(
     student_id: int,
     student_in: StudentUpdate,
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -95,10 +112,9 @@ def update_student(
     Only accessible by users with the TEACHER role.
     Can only update students created by this teacher.
     """
-    statement = select(User).where(
-        User.id == student_id,
-        User.role == UserRole.STUDENT,
-        User.created_by_id == teacher.id
+    statement = select(Student).where(
+        Student.id == student_id,
+        Student.teacher_id == teacher.id
     )
     student = db.exec(statement).first()
     if not student:
@@ -128,7 +144,8 @@ def update_student(
     db.commit()
     db.refresh(student)
     logger.info("Student updated: id=%d by teacher_id=%d", student.id, teacher.id)
-    return student
+    return _to_user_response(student)
+
 
 @router.delete(
     "/{student_id}",
@@ -137,7 +154,7 @@ def update_student(
 )
 def delete_student(
     student_id: int,
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -145,10 +162,9 @@ def delete_student(
     Only accessible by users with the TEACHER role.
     Can only delete students created by this teacher.
     """
-    statement = select(User).where(
-        User.id == student_id,
-        User.role == UserRole.STUDENT,
-        User.created_by_id == teacher.id
+    statement = select(Student).where(
+        Student.id == student_id,
+        Student.teacher_id == teacher.id
     )
     student = db.exec(statement).first()
     if not student:

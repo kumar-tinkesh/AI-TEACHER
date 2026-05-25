@@ -1,3 +1,6 @@
+import io
+from typing import Optional
+
 # Chunk settings optimized for LLM context windows
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
@@ -13,19 +16,38 @@ TEXT_EXTENSIONS = {
 }
 
 
-def extract_text_from_bytes(raw: bytes, filename: str | None = None) -> str:
+def _extract_pdf_text(raw: bytes) -> str:
+    """Extract text from PDF bytes using PyPDF2."""
+    try:
+        from PyPDF2 import PdfReader
+        reader = PdfReader(io.BytesIO(raw))
+        parts = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                parts.append(text)
+        return "\n".join(parts)
+    except Exception:
+        return ""
+
+
+def extract_text_from_bytes(raw: bytes, filename: Optional[str] = None) -> str:
     """
     Extract text content from raw bytes.
-    Returns empty string for unsupported binary formats or decode failures.
+    Supports plain text files and PDFs.
+    Returns empty string for unsupported formats or decode failures.
     """
     if filename:
         ext = filename.split(".")[-1].lower() if "." in filename else ""
-        # Only attempt text extraction for known text-like extensions
+
+        if ext == "pdf":
+            return _extract_pdf_text(raw)
+
         known_exts = {e.lstrip(".") for e in TEXT_EXTENSIONS}
         if ext not in known_exts:
             return ""
 
-    # Try multiple encodings
+    # Try multiple encodings for text files
     encodings = ["utf-8", "utf-8-sig", "latin-1", "cp1252"]
     for enc in encodings:
         try:
@@ -76,7 +98,7 @@ def split_into_chunks(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CH
     return chunks
 
 
-def chunk_bytes(raw: bytes, filename: str | None = None) -> list[str]:
+def chunk_bytes(raw: bytes, filename: Optional[str] = None) -> list[str]:
     """
     Extract text from raw bytes and split into chunks.
     Returns a list of chunk strings.

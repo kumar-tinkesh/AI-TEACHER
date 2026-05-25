@@ -1,16 +1,19 @@
+import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlmodel import Session, select
 
 from auth.database import get_session
 from auth.dependencies import get_current_user, RoleChecker
-from auth.models import User, UserRole
-from admin.agents.models import Agent, AgentChunk, AgentUpdate, AgentResponse, AgentChunkResponse
+from auth.models import Teacher, UserRole
+from admin.agents.models import Agent, AgentUpdate, AgentResponse, AgentChunkResponse
 from admin.utils.chunker import chunk_bytes
 from core.logging import get_logger
+from core.utils import generate_random_id, make_chunk_objects
 
 logger = get_logger("admin.agents")
 router = APIRouter(prefix="/admin/agents", tags=["Admin - Agents"])
+
 
 @router.post(
     "",
@@ -23,7 +26,7 @@ def create_agent(
     subject: str = Form(..., min_length=1, max_length=100),
     description: Optional[str] = Form(None, max_length=500),
     file: UploadFile = File(...),
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -41,11 +44,13 @@ def create_agent(
         )
 
     new_agent = Agent(
+        id=generate_random_id(db, Agent, 10000, 99999),
         name=name,
         description=description,
         subject=subject,
         is_active=True,
         created_by_id=teacher.id,
+        chunks="[]",
     )
     db.add(new_agent)
     db.commit()
@@ -56,9 +61,10 @@ def create_agent(
         raw_bytes = file.file.read()
         # Extract text and chunk for LLM context
         chunks = chunk_bytes(raw_bytes, filename=file.filename)
-        for idx, content in enumerate(chunks):
-            db.add(AgentChunk(agent_id=new_agent.id, chunk_index=idx, content=content))
         if chunks:
+            chunk_objects = make_chunk_objects(chunks)
+            new_agent.chunks = json.dumps(chunk_objects)
+            db.add(new_agent)
             db.commit()
         logger.info(
             "Agent created: id=%d name='%s' by teacher_id=%d chunks=%d",
@@ -73,13 +79,14 @@ def create_agent(
 
     return new_agent
 
+
 @router.get(
     "",
     response_model=List[AgentResponse],
     dependencies=[Depends(RoleChecker([UserRole.TEACHER]))]
 )
 def list_agents(
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -90,6 +97,7 @@ def list_agents(
     agents = db.exec(statement).all()
     return agents
 
+
 @router.get(
     "/{agent_id}/chunks",
     response_model=List[AgentChunkResponse],
@@ -97,7 +105,7 @@ def list_agents(
 )
 def get_agent_chunks(
     agent_id: int,
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -114,10 +122,12 @@ def get_agent_chunks(
             detail="Agent not found or not managed by you"
         )
 
-    chunks = db.exec(
-        select(AgentChunk).where(AgentChunk.agent_id == agent_id).order_by(AgentChunk.chunk_index)
-    ).all()
-    return chunks
+    try:
+        parsed = json.loads(agent.chunks) if agent.chunks else []
+    except Exception:
+        parsed = []
+    return parsed
+
 
 @router.put(
     "/{agent_id}",
@@ -127,7 +137,7 @@ def get_agent_chunks(
 def update_agent(
     agent_id: int,
     agent_in: AgentUpdate,
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -165,6 +175,7 @@ def update_agent(
     logger.info("Agent updated: id=%d by teacher_id=%d", agent.id, teacher.id)
     return agent
 
+
 @router.delete(
     "/{agent_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -172,7 +183,7 @@ def update_agent(
 )
 def delete_agent(
     agent_id: int,
-    teacher: User = Depends(get_current_user),
+    teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
@@ -195,17 +206,11 @@ def delete_agent(
             detail="Agent not found or not managed by you"
         )
 
-    # Cascade delete chunks first
-    chunks = db.exec(select(AgentChunk).where(AgentChunk.agent_id == agent_id)).all()
-    for chunk in chunks:
-        db.delete(chunk)
-    db.commit()
-
     db.delete(agent)
     db.commit()
     logger.info(
-        "Agent deleted: id=%d name='%s' by teacher_id=%d (cascaded %d chunks)",
-        agent_id, agent.name, teacher.id, len(chunks)
+        "Agent deleted: id=%d name='%s' by teacher_id=%d",
+        agent_id, agent.name, teacher.id
     )
     return None
 

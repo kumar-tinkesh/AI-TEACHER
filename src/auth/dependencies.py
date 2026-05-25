@@ -1,45 +1,49 @@
 from typing import List, Union
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session, select
 
 from auth.database import get_session
-from auth.models import User, UserRole
+from auth.models import Teacher, Student, UserRole
 from auth.security import decode_access_token
 from core.logging import get_logger
 
 logger = get_logger("auth.deps")
 
-# Token URL corresponds to the login route
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+security = HTTPBearer()
+
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), 
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_session)
-) -> User:
+):
     """
     Extracts the current authenticated user from the JWT token in request headers.
+    Queries Teacher or Student table based on the 'role' claim.
     Ensures the user exists and is active.
     """
+    token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     payload = decode_access_token(token)
     if payload is None:
         logger.warning("Invalid token presented")
         raise credentials_exception
 
     username: str = payload.get("sub")
-    if username is None:
-        logger.warning("Token missing 'sub' claim")
+    role: str = payload.get("role")
+    if username is None or role is None:
+        logger.warning("Token missing 'sub' or 'role' claim")
         raise credentials_exception
 
-    # Query user from DB to verify they still exist and are active
-    statement = select(User).where(User.username == username)
-    user = db.exec(statement).first()
+    if role == UserRole.TEACHER.value:
+        user = db.exec(select(Teacher).where(Teacher.username == username)).first()
+    else:
+        user = db.exec(select(Student).where(Student.username == username)).first()
 
     if user is None:
         logger.warning("Token valid but user '%s' not found in database", username)
@@ -52,8 +56,9 @@ def get_current_user(
             detail="User account is deactivated"
         )
 
-    logger.debug("Authenticated user: '%s' (role=%s)", user.username, user.role.value)
+    logger.debug("Authenticated user: '%s' (role=%s)", user.username, role)
     return user
+
 
 class RoleChecker:
     """
@@ -62,8 +67,8 @@ class RoleChecker:
     def __init__(self, allowed_roles: List[Union[UserRole, str]]):
         self.allowed_roles = [r.value if isinstance(r, UserRole) else r for r in allowed_roles]
 
-    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
-        user_role_val = current_user.role.value if isinstance(current_user.role, UserRole) else current_user.role
+    def __call__(self, current_user = Depends(get_current_user)):
+        user_role_val = "teacher" if isinstance(current_user, Teacher) else "student"
         if user_role_val not in self.allowed_roles:
             logger.warning(
                 "RBAC denied: user='%s' role='%s' required=%s",
