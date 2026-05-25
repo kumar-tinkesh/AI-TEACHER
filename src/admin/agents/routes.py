@@ -6,10 +6,11 @@ from sqlmodel import Session, select
 from auth.database import get_session
 from auth.dependencies import get_current_user, RoleChecker
 from auth.models import Teacher, UserRole
-from admin.agents.models import Agent, AgentUpdate, AgentResponse, AgentChunkResponse
+from admin.agents.models import Agent, AgentUpdate, AgentResponse, AgentChunkResponse, AgentChunkSearchResponse
 from admin.utils.chunker import chunk_bytes
 from core.logging import get_logger
-from core.utils import generate_random_id, make_chunk_objects
+from core.utils import generate_random_id, make_chunk_objects, generate_embeddings_for_chunks
+from core.embeddings import embed_query, cosine_similarity
 
 logger = get_logger("admin.agents")
 router = APIRouter(prefix="/admin/agents", tags=["Admin - Agents"])
@@ -64,6 +65,9 @@ def create_agent(
         if chunks:
             chunk_objects = make_chunk_objects(chunks)
             new_agent.chunks = json.dumps(chunk_objects)
+            # Generate and store embeddings separately
+            embeddings = generate_embeddings_for_chunks(chunk_objects)
+            new_agent.embeddings = json.dumps(embeddings)
             db.add(new_agent)
             db.commit()
         logger.info(
@@ -109,9 +113,8 @@ def get_agent_chunks(
     db: Session = Depends(get_session)
 ):
     """
-    Retrieve all chunks for a given agent.
+    Retrieve all chunks for a given agent (no embeddings, no scores).
     Only accessible by users with the TEACHER role.
-    Can only access agents created by this teacher.
     """
     agent = db.exec(
         select(Agent).where(Agent.id == agent_id, Agent.created_by_id == teacher.id)
@@ -126,7 +129,104 @@ def get_agent_chunks(
         parsed = json.loads(agent.chunks) if agent.chunks else []
     except Exception:
         parsed = []
+
+    # Strip embeddings from response
+    for chunk in parsed:
+        chunk.pop("embedding", None)
+        chunk.pop("score", None)
+
     return parsed
+
+
+@router.get(
+    "/{agent_id}/search",
+    response_model=List[AgentChunkSearchResponse],
+    dependencies=[Depends(RoleChecker([UserRole.TEACHER]))]
+)
+def search_agent_chunks(
+    agent_id: int,
+    query: str,
+    top_k: int = 10,
+    teacher: Teacher = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """
+    Semantic search over an agent's chunks.
+    Returns top_k most relevant chunks ranked by cosine similarity.
+    Uses the separate embeddings column.
+    Only accessible by users with the TEACHER role.
+    """
+    agent = db.exec(
+        select(Agent).where(Agent.id == agent_id, Agent.created_by_id == teacher.id)
+    ).first()
+    if not agent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found or not managed by you"
+        )
+
+    try:
+        chunks = json.loads(agent.chunks) if agent.chunks else []
+        embeddings = json.loads(agent.embeddings) if agent.embeddings else []
+    except Exception:
+        chunks = []
+        embeddings = []
+
+    if not chunks or not embeddings:
+        return []
+
+    query_embedding = embed_query(query)
+
+    # Compute similarity against stored embeddings
+    scored = []
+    for idx, emb in enumerate(embeddings):
+        if idx < len(chunks):
+            score = cosine_similarity(query_embedding, emb)
+            scored.append({**chunks[idx], "score": round(score, 4)})
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
+
+
+@router.post(
+    "/{agent_id}/embeddings",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(RoleChecker([UserRole.TEACHER]))]
+)
+def generate_agent_embeddings(
+    agent_id: int,
+    teacher: Teacher = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    """
+    (Re)generate embeddings for an agent's chunks.
+    Stores them in the separate embeddings column.
+    Only accessible by users with the TEACHER role.
+    """
+    agent = db.exec(
+        select(Agent).where(Agent.id == agent_id, Agent.created_by_id == teacher.id)
+    ).first()
+    if not agent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agent not found or not managed by you"
+        )
+
+    try:
+        chunks = json.loads(agent.chunks) if agent.chunks else []
+    except Exception:
+        chunks = []
+
+    if not chunks:
+        return {"agent_id": agent_id, "embeddings_generated": 0}
+
+    embeddings = generate_embeddings_for_chunks(chunks)
+    agent.embeddings = json.dumps(embeddings)
+    db.add(agent)
+    db.commit()
+
+    logger.info("Embeddings generated: agent_id=%d chunks=%d", agent_id, len(chunks))
+    return {"agent_id": agent_id, "embeddings_generated": len(chunks)}
 
 
 @router.put(

@@ -6,6 +6,7 @@ from sqlmodel.pool import StaticPool
 
 from main import app
 from auth import get_session
+from core.embeddings import load_model
 
 # ==========================================
 # Pytest Fixtures & Database Overrides
@@ -28,6 +29,7 @@ def session_fixture():
 
 @pytest.fixture(name="client")
 def client_fixture(session: Session):
+    load_model()  # Pre-load embedding model for tests
     def get_session_override():
         return session
 
@@ -346,3 +348,60 @@ def test_agent_with_binary_file(client: TestClient):
     chunks = client.get(f"/api/v1/admin/agents/{agent_id}/chunks", headers=headers)
     assert chunks.status_code == 200
     assert len(chunks.json()) == 0
+
+
+def test_agent_embeddings_route(client: TestClient):
+    register_teacher(client, "teach1", "pass123", "Teacher One")
+    headers = login_user(client, "teach1", "pass123")
+
+    long_text = "Machine learning is a subset of artificial intelligence. " * 50
+    resp = create_agent(client, headers, "ML Agent", "AI", "ML desc", long_text.encode("utf-8"), "ml.txt")
+    assert resp.status_code == 201
+    agent_id = resp.json()["id"]
+
+    # Embeddings should be auto-generated on creation
+    embed_resp = client.post(f"/api/v1/admin/agents/{agent_id}/embeddings", headers=headers)
+    assert embed_resp.status_code == 200
+    data = embed_resp.json()
+    assert data["agent_id"] == agent_id
+    assert data["embeddings_generated"] >= 3
+
+
+def test_agent_semantic_chunk_search(client: TestClient):
+    register_teacher(client, "teach1", "pass123", "Teacher One")
+    headers = login_user(client, "teach1", "pass123")
+
+    # Create content with clearly separated topics
+    math_text = "Algebra is a branch of mathematics dealing with symbols and rules for manipulating them. " * 40
+    physics_text = "Physics is the natural science that studies matter, energy, and the fundamental forces of nature. " * 35
+    chem_text = "Chemistry is the scientific study of the properties and behavior of matter and chemical reactions. " * 35
+    combined = math_text + "\n\n" + physics_text + "\n\n" + chem_text
+
+    resp = create_agent(client, headers, "Science Agent", "Science", "Multi-topic", combined.encode("utf-8"), "science.txt")
+    assert resp.status_code == 201
+    agent_id = resp.json()["id"]
+
+    # All chunks (no embeddings/scores)
+    all_chunks = client.get(f"/api/v1/admin/agents/{agent_id}/chunks", headers=headers).json()
+    assert len(all_chunks) >= 3
+    assert all("embedding" not in c for c in all_chunks)
+    assert all("score" not in c for c in all_chunks)
+
+    # Semantic search for math
+    math_results = client.get(
+        f"/api/v1/admin/agents/{agent_id}/search?query=algebra and mathematics&top_k=3",
+        headers=headers
+    ).json()
+    assert len(math_results) <= 3
+    assert math_results[0]["score"] >= math_results[-1]["score"]
+    # Top result should mention math-related content
+    assert "mathematics" in math_results[0]["content"].lower() or "algebra" in math_results[0]["content"].lower()
+
+    # Semantic search for physics
+    physics_results = client.get(
+        f"/api/v1/admin/agents/{agent_id}/search?query=forces of nature and energy&top_k=3",
+        headers=headers
+    ).json()
+    assert len(physics_results) <= 3
+    assert physics_results[0]["score"] >= physics_results[-1]["score"]
+    assert "physics" in physics_results[0]["content"].lower() or "matter" in physics_results[0]["content"].lower()

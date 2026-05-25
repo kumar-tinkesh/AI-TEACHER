@@ -13,6 +13,7 @@ class Agent(SQLModel, table=True):
     created_by_id: Optional[int] = Field(default=None, foreign_key="teacher.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     chunks: str = Field(default="[]", sa_column=Column(Text))
+    embeddings: str = Field(default="[]", sa_column=Column(Text))
 
 
 class AgentCreate(SQLModel):
@@ -43,3 +44,11 @@ class AgentChunkResponse(SQLModel):
     chunk_index: int
     content: str
     created_at: datetime
+
+
+class AgentChunkSearchResponse(SQLModel):
+    id: int
+    chunk_index: int
+    content: str
+    created_at: datetime
+    score: float

@@ -1,7 +1,10 @@
 import json
 import random
 from datetime import datetime, timezone
+from typing import List
 from sqlmodel import Session, select
+
+from core.embeddings import embed_texts
 
 
 def generate_random_id(db: Session, model, min_val: int, max_val: int, max_attempts: int = 10) -> int:
@@ -15,7 +18,7 @@ def generate_random_id(db: Session, model, min_val: int, max_val: int, max_attem
 
 
 def make_chunk_objects(chunks: list[str]) -> list[dict]:
-    """Build chunk objects with random 7-digit IDs."""
+    """Build chunk objects with random 7-digit IDs (no embeddings)."""
     result = []
     for idx, content in enumerate(chunks):
         chunk_id = random.randint(1_000_000, 9_999_999)
@@ -26,3 +29,9 @@ def make_chunk_objects(chunks: list[str]) -> list[dict]:
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
     return result
+
+
+def generate_embeddings_for_chunks(chunks: list[dict]) -> List[List[float]]:
+    """Generate embeddings for a list of chunk objects. Returns list of vectors."""
+    texts = [c["content"] for c in chunks]
+    return embed_texts(texts)

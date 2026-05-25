@@ -6,6 +6,7 @@ from sqlmodel.pool import StaticPool
 
 from main import app
 from auth import get_session, Teacher, Student, UserRole
+from core.embeddings import load_model
 
 # ==========================================
 # Pytest Fixtures & Database Overrides
@@ -28,6 +29,7 @@ def session_fixture():
 
 @pytest.fixture(name="client")
 def client_fixture(session: Session):
+    load_model()  # Pre-load embedding model for tests
     def get_session_override():
         return session
 

@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from auth import create_db_and_tables, auth_router, dashboard_router, users_router
 from admin import students_router, agents_router
 from core.logging import setup_logging
+from core.embeddings import load_model
 
 setup_logging(level="INFO")
 
@@ -10,6 +11,8 @@ setup_logging(level="INFO")
 async def lifespan(app: FastAPI):
     # Create tables in the database on startup
     create_db_and_tables()
+    # Pre-load embedding model into memory
+    load_model()
     yield
 
 app = FastAPI(
