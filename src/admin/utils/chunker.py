@@ -17,15 +17,16 @@ TEXT_EXTENSIONS = {
 
 
 def _extract_pdf_text(raw: bytes) -> str:
-    """Extract text from PDF bytes using PyPDF2."""
+    """Extract text from PDF bytes using PyMuPDF (fitz)."""
     try:
-        from PyPDF2 import PdfReader
-        reader = PdfReader(io.BytesIO(raw))
+        import fitz
+        doc = fitz.open(stream=raw, filetype="pdf")
         parts = []
-        for page in reader.pages:
-            text = page.extract_text()
+        for page in doc:
+            text = page.get_text()
             if text:
                 parts.append(text)
+        doc.close()
         return "\n".join(parts)
     except Exception:
         return ""
