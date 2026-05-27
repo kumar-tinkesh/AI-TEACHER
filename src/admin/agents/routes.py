@@ -25,6 +25,7 @@ router = APIRouter(prefix="/admin/agents", tags=["Admin - Agents"])
 def create_agent(
     name: str = Form(..., min_length=1, max_length=100),
     subject: str = Form(..., min_length=1, max_length=100),
+    class_name: Optional[str] = Form(None, max_length=50),
     description: Optional[str] = Form(None, max_length=500),
     file: UploadFile = File(...),
     teacher: Teacher = Depends(get_current_user),
@@ -49,6 +50,7 @@ def create_agent(
         name=name,
         description=description,
         subject=subject,
+        class_name=class_name,
         is_active=True,
         created_by_id=teacher.id,
         chunks="[]",
@@ -90,15 +92,20 @@ def create_agent(
     dependencies=[Depends(RoleChecker([UserRole.TEACHER]))]
 )
 def list_agents(
+    all: bool = False,
     teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
-    List all agents created by the current teacher.
+    List agents.
+    Default: agents created by current teacher.
+    If ?all=true: all agents with created_by_id info.
     Only accessible by users with the TEACHER role.
     """
-    statement = select(Agent).where(Agent.created_by_id == teacher.id)
-    agents = db.exec(statement).all()
+    if all:
+        agents = db.exec(select(Agent)).all()
+    else:
+        agents = db.exec(select(Agent).where(Agent.created_by_id == teacher.id)).all()
     return agents
 
 
@@ -266,6 +273,8 @@ def update_agent(
         agent.description = agent_in.description
     if agent_in.subject is not None:
         agent.subject = agent_in.subject
+    if agent_in.class_name is not None:
+        agent.class_name = agent_in.class_name
     if agent_in.is_active is not None:
         agent.is_active = agent_in.is_active
 

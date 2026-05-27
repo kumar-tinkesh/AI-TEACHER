@@ -9,6 +9,7 @@ class Agent(SQLModel, table=True):
     name: str = Field(index=True, unique=True, min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     subject: str = Field(min_length=1, max_length=100)
+    class_name: Optional[str] = Field(default=None, max_length=50)
     is_active: bool = Field(default=True)
     created_by_id: Optional[int] = Field(default=None, foreign_key="teacher.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -20,12 +21,14 @@ class AgentCreate(SQLModel):
     name: str = Field(min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     subject: str = Field(min_length=1, max_length=100)
+    class_name: Optional[str] = Field(default=None, max_length=50)
 
 
 class AgentUpdate(SQLModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     subject: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    class_name: Optional[str] = Field(default=None, max_length=50)
     is_active: Optional[bool] = None
 
 
@@ -34,6 +37,7 @@ class AgentResponse(SQLModel):
     name: str
     description: Optional[str] = None
     subject: str
+    class_name: Optional[str] = None
     is_active: bool
     created_by_id: Optional[int] = None
     created_at: datetime

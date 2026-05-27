@@ -2,7 +2,9 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
+from typing import List
 from auth.database import get_session
+from auth.dependencies import RoleChecker
 from auth.models import Teacher, Student, UserRole, TeacherRegister, UserResponse, Token, UserLogin
 from auth.security import hash_password, verify_password, create_access_token
 from auth.config import settings
@@ -95,3 +97,29 @@ def login(
 
     logger.info("Login success: username='%s' role='%s'", user.username, role)
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/teachers", response_model=List[UserResponse], dependencies=[Depends(RoleChecker([UserRole.TEACHER]))])
+def list_teachers(
+    db: Session = Depends(get_session)
+):
+    """
+    List all registered teachers.
+    Only accessible by users with the TEACHER role.
+    """
+    teachers = db.exec(select(Teacher)).all()
+    return [
+        {
+            "id": t.id,
+            "username": t.username,
+            "full_name": t.full_name,
+            "role": "teacher",
+            "is_active": t.is_active,
+            "created_at": t.created_at,
+            "phone_number": t.phone_number,
+            "age": None,
+            "class_name": None,
+            "teacher_id": None,
+        }
+        for t in teachers
+    ]

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Teacher - Admin</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6fa; color: #2d3436; line-height: 1.6; }
+.container { max-width: 900px; margin: 0 auto; padding: 20px; }
+header { background: #2c3e50; color: white; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 8px; }
+.card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+h2 { color: #2c3e50; margin-bottom: 15px; font-size: 1.2rem; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
+label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
+input, select, textarea { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 0.95rem; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3498db; }
+button { background: #3498db; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; }
+button:hover { background: #2980b9; }
+button.secondary { background: #7f8c8d; }
+button.secondary:hover { background: #636e72; }
+button.danger { background: #e74c3c; }
+button.danger:hover { background: #c0392b; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+@media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid #dfe6e9; }
+th { background: #f8f9fa; font-weight: 600; }
+.status { padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 500; display: inline-block; }
+.status.success { background: #d4edda; color: #155724; }
+.status.error { background: #f8d7da; color: #721c24; }
+.status.info { background: #d1ecf1; color: #0c5460; }
+.hidden { display: none; }
+#authSection { max-width: 400px; margin: 40px auto; }
+.nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.nav button { flex: 1; min-width: 120px; }
+.chunks { max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 6px; margin-top: 10px; }
+.chunk-item { padding: 8px; border-bottom: 1px solid #dfe6e9; font-size: 0.85rem; }
+.chunk-item:last-child { border-bottom: none; }
+.score { color: #e67e22; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>AI Teacher Platform - Admin Panel</h1>
+<p>Manage Students, Agents, and Knowledge Bases</p>
+</header>
+
+<div class="container">
+
+<!-- Auth Section -->
+<div id="authSection" class="card">
+<h2>Teacher Login</h2>
+<label>Username</label>
+<input type="text" id="loginUsername" placeholder="teacher username">
+<label>Password</label>
+<input type="password" id="loginPassword" placeholder="password">
+<button onclick="login()">Login</button>
+<p style="margin-top:10px">No account? <a href="#" onclick="showRegister()">Register as Teacher</a></p>
+<div id="loginStatus"></div>
+</div>
+
+<!-- Register Section -->
+<div id="registerSection" class="card hidden">
+<h2>Register Teacher</h2>
+<label>Username</label>
+<input type="text" id="regUsername" placeholder="min 3 chars">
+<label>Password</label>
+<input type="password" id="regPassword" placeholder="min 6 chars">
+<label>Full Name</label>
+<input type="text" id="regFullName" placeholder="Your full name">
+<button onclick="register()">Register</button>
+<button class="secondary" onclick="showLogin()">Back to Login</button>
+<div id="registerStatus"></div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard" class="hidden">
+<div class="nav">
+<button onclick="showTab('home')">Dashboard</button>
+<button onclick="showTab('teachers')">Teachers</button>
+<button onclick="showTab('students')">Students</button>
+<button onclick="showTab('agents')">Agents</button>
+<button onclick="showTab('profile')">Profile</button>
+<button class="danger" onclick="logout()">Logout</button>
+</div>
+<div id="userInfo" class="status info" style="margin-bottom:15px"></div>
+
+<!-- Home / Overview Tab -->
+<div id="homeTab" class="card">
+<h2>Dashboard Overview</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px">
+<div class="card" style="text-align:center">
+<h3>Teachers</h3>
+<div id="dashTeacherCount" style="font-size:2.5rem;color:#9b59b6;font-weight:700">0</div>
+<p>total teachers</p>
+<button onclick="showTab('teachers')">View Teachers</button>
+</div>
+<div class="card" style="text-align:center">
+<h3>Students</h3>
+<div id="dashStudentCount" style="font-size:2.5rem;color:#3498db;font-weight:700">0</div>
+<p>total students</p>
+<button onclick="showTab('students')">Manage Students</button>
+</div>
+<div class="card" style="text-align:center">
+<h3>AI Agents</h3>
+<div id="dashAgentCount" style="font-size:2.5rem;color:#e67e22;font-weight:700">0</div>
+<p>total agents</p>
+<button onclick="showTab('agents')">Manage Agents</button>
+</div>
+</div>
+<h3 style="margin-top:20px">Recent Teachers</h3>
+<div id="dashTeachers"><p>Loading...</p></div>
+<h3 style="margin-top:20px">Recent Students</h3>
+<div id="dashStudents"><p>Loading...</p></div>
+<h3 style="margin-top:20px">Recent Agents</h3>
+<div id="dashAgents"><p>Loading...</p></div>
+</div>
+
+<!-- Teachers Tab -->
+<div id="teachersTab" class="card hidden">
+<h2>All Teachers</h2>
+<button onclick="listTeachers()" class="secondary">Refresh List</button>
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Active</th><th>Created</th></tr></thead>
+<tbody id="teachersTable"></tbody>
+</table>
+</div>
+
+<!-- Students Tab -->
+<div id="studentsTab" class="card hidden">
+<h2>Student Management</h2>
+
+<h3 style="margin-top:15px">Create Student</h3>
+<div class="grid-2">
+<div>
+<label>Username</label>
+<input type="text" id="stuUsername" placeholder="student username">
+<label>Password</label>
+<input type="password" id="stuPassword" placeholder="password">
+<label>Student Name</label>
+<input type="text" id="stuName" placeholder="full name">
+<label>Age</label>
+<input type="number" id="stuAge" placeholder="15">
+</div>
+<div>
+<label>Class</label>
+<select id="stuClass">
+<option value="">Select Class</option>
+<option value="1st">1st</option>
+<option value="2nd">2nd</option>
+<option value="3rd">3rd</option>
+<option value="4th">4th</option>
+<option value="5th">5th</option>
+<option value="6th">6th</option>
+<option value="7th">7th</option>
+<option value="8th">8th</option>
+<option value="9th">9th</option>
+<option value="10th">10th</option>
+<option value="11th">11th</option>
+<option value="12th">12th</option>
+</select>
+<label>Phone</label>
+<input type="text" id="stuPhone" placeholder="9876543210">
+<label>Assign Agents</label>
+<div id="stuAgentAssign" style="max-height:120px;overflow-y:auto;background:#f8f9fa;padding:8px;border-radius:6px;margin-bottom:12px;"><p style="font-size:0.85rem;color:#636e72">Loading agents...</p></div>
+</div>
+</div>
+<button onclick="createStudent()">Create Student</button>
+<div id="stuCreateStatus"></div>
+
+<h3 style="margin-top:25px">All Students</h3>
+<button onclick="listStudents()" class="secondary">Refresh List</button>
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Age</th><th>Class</th><th>Phone</th><th>Agents</th><th>Active</th><th>Teacher</th><th>Actions</th></tr></thead>
+<tbody id="studentsTable"></tbody>
+</table>
+</div>
+
+<!-- Agents Tab -->
+<div id="agentsTab" class="card hidden">
+<h2>AI Agent Management</h2>
+
+<h3 style="margin-top:15px">Create Agent</h3>
+<div class="grid-2">
+<div>
+<label>Agent Name</label>
+<input type="text" id="agentName" placeholder="Math Tutor">
+<label>Subject</label>
+<input type="text" id="agentSubject" placeholder="Mathematics">
+</div>
+<div>
+<label>Class (optional)</label>
+<select id="agentClass">
+<option value="">General</option>
+<option value="1st">1st</option>
+<option value="2nd">2nd</option>
+<option value="3rd">3rd</option>
+<option value="4th">4th</option>
+<option value="5th">5th</option>
+<option value="6th">6th</option>
+<option value="7th">7th</option>
+<option value="8th">8th</option>
+<option value="9th">9th</option>
+<option value="10th">10th</option>
+<option value="11th">11th</option>
+<option value="12th">12th</option>
+</select>
+<label>Description</label>
+<textarea id="agentDesc" rows="3" placeholder="Brief description"></textarea>
+<label>Upload File (PDF, TXT, etc.)</label>
+<input type="file" id="agentFile" accept=".pdf,.txt,.md,.docx">
+</div>
+</div>
+<button onclick="createAgent()">Create Agent</button>
+<div id="agentCreateStatus"></div>
+
+<h3 style="margin-top:25px">All Agents</h3>
+<button onclick="listAgents()" class="secondary">Refresh List</button>
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>Subject</th><th>Class</th><th>Active</th><th>Created</th><th>Teacher</th><th>Actions</th></tr></thead>
+<tbody id="agentsTable"></tbody>
+</table>
+
+<h3 style="margin-top:25px">Agent Chunks</h3>
+<button class="secondary" onclick="clearChunks()">Hide Chunks</button>
+<div id="chunkResults" class="chunks"><p>Select an agent and click "Chunks" to view all chunks here.</p></div>
+
+<h3 style="margin-top:25px">Search Agent Chunks</h3>
+<div style="display:flex;gap:10px;">
+<select id="searchAgentId" style="flex:1"><option value="">Select Agent</option></select>
+<input type="text" id="searchQuery" placeholder="Search query..." style="flex:2">
+<input type="number" id="searchTopK" value="5" min="1" max="20" style="width:80px">
+<button onclick="searchChunks()">Search</button>
+</div>
+<div id="searchResults" class="chunks"></div>
+</div>
+
+<!-- Profile Tab -->
+<div id="profileTab" class="card hidden">
+<h2>My Profile</h2>
+<div id="profileContent"></div>
+</div>
+
+</div>
+
+</div>
+
+<script src="/static/admin.js"></script>
+</body>
+</html>

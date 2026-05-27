@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from sqlmodel import Field, SQLModel
 
 class StudentCreate(SQLModel):
@@ -6,8 +6,9 @@ class StudentCreate(SQLModel):
     password: str = Field(min_length=6, max_length=100)
     student_name: str = Field(min_length=1, max_length=100)
     age: int = Field(gt=0, lt=120)
-    class_name: str = Field(min_length=1, max_length=50)
-    phone_number: str = Field(min_length=1, max_length=20)
+    class_name: Optional[str] = Field(default=None, max_length=50)
+    phone_number: Optional[str] = Field(default=None, max_length=20)
+    assigned_agent_ids: Optional[List[int]] = Field(default=None)
 
 class StudentUpdate(SQLModel):
     password: Optional[str] = Field(default=None, min_length=6, max_length=100)
@@ -16,3 +17,4 @@ class StudentUpdate(SQLModel):
     class_name: Optional[str] = Field(default=None, min_length=1, max_length=50)
     phone_number: Optional[str] = Field(default=None, min_length=1, max_length=20)
     is_active: Optional[bool] = None
+    assigned_agent_ids: Optional[List[int]] = Field(default=None)

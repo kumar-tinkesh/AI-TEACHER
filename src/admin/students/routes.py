@@ -14,8 +14,17 @@ logger = get_logger("admin.students")
 router = APIRouter(prefix="/admin/students", tags=["Admin - Students"])
 
 
+import json
+from admin.agents.models import Agent
+
 def _to_user_response(user):
     is_teacher = isinstance(user, Teacher)
+    assigned = []
+    if not is_teacher and user.assigned_agent_ids:
+        try:
+            assigned = json.loads(user.assigned_agent_ids)
+        except Exception:
+            assigned = []
     return {
         "id": user.id,
         "username": user.username,
@@ -27,7 +36,21 @@ def _to_user_response(user):
         "age": getattr(user, "age", None),
         "class_name": getattr(user, "class_name", None),
         "teacher_id": getattr(user, "teacher_id", None),
+        "assigned_agent_ids": assigned,
     }
+
+
+def _validate_agent_assignments(db, teacher_id, agent_ids):
+    if not agent_ids:
+        return []
+    valid = []
+    for aid in agent_ids:
+        agent = db.exec(select(Agent).where(Agent.id == aid, Agent.created_by_id == teacher_id)).first()
+        if agent:
+            valid.append(aid)
+        else:
+            logger.warning("Agent id=%d not found or not owned by teacher_id=%d", aid, teacher_id)
+    return valid
 
 
 @router.post(
@@ -56,6 +79,8 @@ def create_student(
 
     hashed_pwd = hash_password(student_in.password)
 
+    validated_agents = _validate_agent_assignments(db, teacher.id, student_in.assigned_agent_ids)
+
     new_student = Student(
         id=generate_random_id(db, Student, 10000, 99999),
         username=student_in.username,
@@ -66,14 +91,15 @@ def create_student(
         age=student_in.age,
         class_name=student_in.class_name,
         phone_number=student_in.phone_number,
+        assigned_agent_ids=json.dumps(validated_agents),
     )
 
     db.add(new_student)
     db.commit()
     db.refresh(new_student)
     logger.info(
-        "Student created: id=%d username='%s' by teacher_id=%d",
-        new_student.id, new_student.username, teacher.id
+        "Student created: id=%d username='%s' by teacher_id=%d agents=%s",
+        new_student.id, new_student.username, teacher.id, validated_agents
     )
     return _to_user_response(new_student)
 
@@ -84,15 +110,20 @@ def create_student(
     dependencies=[Depends(RoleChecker([UserRole.TEACHER]))]
 )
 def list_students(
+    all: bool = False,
     teacher: Teacher = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
     """
-    List all students created by the current teacher.
+    List students.
+    Default: students created by current teacher.
+    If ?all=true: all students with teacher_id info.
     Only accessible by users with the TEACHER role.
     """
-    statement = select(Student).where(Student.teacher_id == teacher.id)
-    students = db.exec(statement).all()
+    if all:
+        students = db.exec(select(Student)).all()
+    else:
+        students = db.exec(select(Student).where(Student.teacher_id == teacher.id)).all()
     return [_to_user_response(s) for s in students]
 
 
@@ -139,6 +170,9 @@ def update_student(
         student.is_active = student_in.is_active
     if student_in.password is not None:
         student.hashed_password = hash_password(student_in.password)
+    if student_in.assigned_agent_ids is not None:
+        validated = _validate_agent_assignments(db, teacher.id, student_in.assigned_agent_ids)
+        student.assigned_agent_ids = json.dumps(validated)
 
     db.add(student)
     db.commit()

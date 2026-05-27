@@ -1,0 +1,93 @@
+INFO:     Started server process [91204]
+INFO:     Waiting for application startup.
+2026-05-27 19:34:07 | INFO     | embeddings | Loading embedding model...
+2026-05-27 19:34:12 | INFO     | sentence_transformers.base.model | No device provided, using mps
+2026-05-27 19:34:12 | INFO     | sentence_transformers.base.model | Loading SentenceTransformer model from sentence-transformers/all-MiniLM-L6-v2.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 6160.35it/s]
+2026-05-27 19:34:13 | INFO     | embeddings | Embedding model loaded from local cache.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:63119 - "GET / HTTP/1.1" 307 Temporary Redirect
+2026-05-27 19:34:40 | INFO     | auth | Teacher registered: id=28629 username='teacher1'
+INFO:     127.0.0.1:63128 - "POST /api/v1/auth/teacher/register HTTP/1.1" 201 Created
+2026-05-27 19:34:40 | INFO     | auth | Login success: username='teacher1' role='teacher'
+INFO:     127.0.0.1:63130 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+2026-05-27 19:34:41 | INFO     | admin.agents | Agent created: id=44282 name='GeneralAgent' by teacher_id=28629 chunks=21
+INFO:     127.0.0.1:63132 - "POST /api/v1/admin/agents HTTP/1.1" 201 Created
+2026-05-27 19:34:41 | INFO     | admin.agents | Agent created: id=17941 name='Math10' by teacher_id=28629 chunks=21
+INFO:     127.0.0.1:63134 - "POST /api/v1/admin/agents HTTP/1.1" 201 Created
+INFO:     127.0.0.1:63136 - "GET /api/v1/admin/agents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63169 - "GET /static/index.html HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63169 - "GET /static/admin.js HTTP/1.1" 200 OK
+2026-05-27 19:35:38 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:38 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:38 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:38 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63169 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63173 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /static/index.html HTTP/1.1" 304 Not Modified
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63174 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63169 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63173 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /static/index.html HTTP/1.1" 304 Not Modified
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63170 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63173 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63169 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /static/index.html HTTP/1.1" 304 Not Modified
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63173 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63169 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /static/index.html HTTP/1.1" 304 Not Modified
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63174 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63173 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63169 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /static/index.html HTTP/1.1" 304 Not Modified
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:39 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63170 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63173 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63169 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63169 - "GET /static/index.html HTTP/1.1" 304 Not Modified
+2026-05-27 19:35:40 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:40 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:40 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+2026-05-27 19:35:40 | WARNING  | auth.deps | Token valid but user 'abhishek' not found in database
+INFO:     127.0.0.1:63169 - "GET /api/v1/auth/teachers HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63173 - "GET /api/v1/admin/agents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63174 - "GET /api/v1/admin/students HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63170 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+2026-05-27 19:35:51 | INFO     | auth | Teacher registered: id=15362 username='abhishek'
+INFO:     127.0.0.1:63203 - "POST /api/v1/auth/teacher/register HTTP/1.1" 201 Created
+2026-05-27 19:35:58 | INFO     | auth | Login success: username='abhishek' role='teacher'
+INFO:     127.0.0.1:63207 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63207 - "GET /api/v1/auth/teachers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/v1/admin/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63213 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63212 - "GET /api/v1/admin/agents HTTP/1.1" 200 OK
+/opt/homebrew/Cellar/python@3.11/3.11.13_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

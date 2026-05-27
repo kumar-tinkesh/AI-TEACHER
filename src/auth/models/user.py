@@ -1,12 +1,17 @@
+import json
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, List
 from sqlmodel import Field, SQLModel
 
 
 class UserRole(str, Enum):
     TEACHER = "teacher"
     STUDENT = "student"
+
+
+# Standard classes
+CLASSES = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"]
 
 
 # --- Database Tables ---
@@ -30,8 +35,18 @@ class Student(SQLModel, table=True):
     class_name: Optional[str] = Field(default=None, max_length=50)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     teacher_id: Optional[int] = Field(default=None, foreign_key="teacher.id")
+    assigned_agent_ids: str = Field(default="[]")
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    def get_assigned_agent_ids(self) -> List[int]:
+        try:
+            return json.loads(self.assigned_agent_ids) if self.assigned_agent_ids else []
+        except Exception:
+            return []
+
+    def set_assigned_agent_ids(self, ids: List[int]) -> None:
+        self.assigned_agent_ids = json.dumps(ids)
 
 
 # Unified type for dependencies
@@ -72,3 +87,4 @@ class UserResponse(SQLModel):
     age: Optional[int] = None
     class_name: Optional[str] = None
     teacher_id: Optional[int] = None
+    assigned_agent_ids: List[int] = []
