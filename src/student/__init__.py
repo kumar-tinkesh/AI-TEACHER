@@ -1,3 +1,4 @@
-from student.routes import router as student_router
+from student.endpoints import router as student_router
+from student.endpoints import list_agents, search
 
 __all__ = ["student_router"]

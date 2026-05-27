@@ -360,17 +360,26 @@ function logout() {
     document.getElementById('loginPassword').value = '';
 }
 
-// Auto-login if token exists
-if (token) {
-    hide('authSection');
-    hide('registerSection');
-    show('dashboard');
-    showTab('home');
-    loadProfile();
+// Validate token before showing dashboard
+async function tryAutoLogin() {
+    if (!token) return;
+    const r = await api('GET', '/users/me');
+    if (r.ok) {
+        hide('authSection');
+        hide('registerSection');
+        show('dashboard');
+        showTab('home');
+        loadProfile();
+    } else {
+        token = null;
+        localStorage.removeItem('token');
+        show('authSection');
+    }
 }
 
 // Re-filter assignable agents when class dropdown changes
 document.addEventListener('DOMContentLoaded', () => {
     const cls = document.getElementById('stuClass');
     if (cls) cls.addEventListener('change', loadStudentAgentAssign);
+    tryAutoLogin();
 });

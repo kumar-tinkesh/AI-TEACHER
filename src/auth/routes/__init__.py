@@ -1,6 +1,13 @@
-from auth.routes.auth import router as auth_router
-from auth.routes.dashboard import router as dashboard_router
-from auth.routes.users import router as users_router
+from auth.routes.endpoints import auth_router, dashboard_router, users_router
+from auth.routes.endpoints import (
+    register,
+    login,
+    list_teachers,
+    teacher_dashboard,
+    student_dashboard,
+    shared_dashboard,
+    me,
+)
 
 __all__ = [
     "auth_router",
