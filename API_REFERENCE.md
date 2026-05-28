@@ -78,6 +78,37 @@ Login with username/password. Returns JWT access token.
 
 ---
 
+### POST /api/v1/auth/student/login
+Student-only login with username/password. Returns JWT access token.
+
+**Request Body (JSON):**
+```json
+{
+  "username": "student1",
+  "password": "studentpassword"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+**Response 401 Unauthorized:**
+```json
+{"detail": "Incorrect username or password"}
+```
+
+**Response 403 Forbidden (deactivated):**
+```json
+{"detail": "Your account is deactivated"}
+```
+
+---
+
 ### GET /api/v1/users/me
 Get current authenticated user profile.
 
@@ -470,6 +501,99 @@ Shared dashboard accessible by both teachers and students.
 
 ---
 
+## 5. Student
+
+### GET /api/v1/student/me
+Get current authenticated student profile.
+
+**Headers:**
+```
+Authorization: Bearer <student_token>
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 2,
+  "username": "student1",
+  "full_name": "Student One",
+  "role": "student",
+  "is_active": true,
+  "created_at": "2026-05-25T10:05:00",
+  "age": 15,
+  "class_name": "10th Grade",
+  "phone_number": "9876543210",
+  "teacher_id": 1,
+  "assigned_agent_ids": [1, 2]
+}
+```
+
+**Response 403 (teacher access):**
+```json
+{"detail": "You do not have permission to access this resource"}
+```
+
+---
+
+### GET /api/v1/student/agents
+List all agents assigned to the logged-in student.
+
+**Headers:**
+```
+Authorization: Bearer <student_token>
+```
+
+**Response 200 OK:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Math Tutor",
+    "subject": "Mathematics",
+    "description": "AI agent for algebra",
+    "is_active": true,
+    "created_by_id": 1,
+    "created_at": "2026-05-25T10:10:00"
+  }
+]
+```
+
+---
+
+### GET /api/v1/student/agents/{agent_id}/search
+Semantic search over an assigned agent's chunks.
+
+**Headers:**
+```
+Authorization: Bearer <student_token>
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| query     | string | required | Search query |
+| top_k     | int    | 10       | Number of results to return |
+
+**Response 200 OK:**
+```json
+[
+  {
+    "id": 1,
+    "agent_id": 1,
+    "chunk_index": 0,
+    "content": "Algebra is a branch of mathematics...",
+    "score": 0.9234
+  }
+]
+```
+
+**Response 403 (unassigned agent):**
+```json
+{"detail": "You do not have access to this agent"}
+```
+
+---
+
 ## Error Codes Summary
 
 | Status | Meaning | Common Causes |
@@ -498,9 +622,11 @@ Shared dashboard accessible by both teachers and students.
 
 ### Student Flow:
 1. Teacher creates student account (`POST /api/v1/admin/students`)
-2. **Login:** `POST /api/v1/auth/login` with student credentials → store token
-3. **View Profile:** `GET /api/v1/users/me`
-4. **Dashboard:** `GET /api/v1/dashboard/student`
+2. **Login:** `POST /api/v1/auth/student/login` with student credentials → store token
+3. **View Profile:** `GET /api/v1/student/me`
+4. **List Agents:** `GET /api/v1/student/agents`
+5. **Search Agent:** `GET /api/v1/student/agents/{id}/search?query=...`
+6. **Dashboard:** `GET /api/v1/dashboard/student`
 
 ### Token Refresh:
 Tokens expire after 30 minutes. On 401, redirect to login page.

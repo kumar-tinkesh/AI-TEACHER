@@ -2,6 +2,7 @@ from auth.routes.endpoints import auth_router, dashboard_router, users_router
 from auth.routes.endpoints import (
     register,
     login,
+    student_login,
     list_teachers,
     teacher_dashboard,
     student_dashboard,
