@@ -1,0 +1,14 @@
+model_list:
+  # 1. Your Ollama Cloud Model
+  - model_name: "kimi-cloud"
+    litellm_params:
+      model: "ollama/kimi-k2.6:cloud"
+      api_base: "https://ollama.com/v1"
+      headers:
+        Authorization: "Bearer os.environ/OLLAMA_API_KEY"
+
+  # 2. Your Groq Model
+  - model_name: "groq-fast"
+    litellm_params:
+      model: "groq/llama-3.3-70b-versatile"
+      api_key: "os.environ/GROQ_API_KEY"
