@@ -24,12 +24,12 @@ setup:
 		uv venv --python $(PYTHON); \
 	fi
 	@echo "Installing dependencies..."
-	uv sync --all-groups
+	uv sync
 	@echo "Setup complete. Run 'make run' to start the server."
 
 install:
 	@echo "Installing dependencies..."
-	uv sync --all-groups
+	uv sync
 
 run:
 	@echo "Starting AI Teacher Platform API..."

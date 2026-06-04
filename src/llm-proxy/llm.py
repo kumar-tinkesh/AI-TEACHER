@@ -58,23 +58,25 @@ class GroqCloudClient:
         
         return response.choices[0].message.content
 
-# # ================================
-# # Usage
-# # ================================
-# if __name__ == "__main__":
 
-#     # Ollama Cloud
-#     ollama_ai = OllamaCloudClient()
+def get_llm_client():
+    """Factory function to get the configured primary LLM client."""
+    provider = os.getenv("PRIMARY_LLM", "groq").lower()
+    if provider == "groq":
+        return GroqCloudClient()
+    elif provider == "ollama":
+        return OllamaCloudClient()
+    else:
+        raise ValueError(
+            f"Invalid PRIMARY_LLM provider: {provider}. "
+            "Supported values are 'groq' or 'ollama'."
+        )
 
-#     ollama_reply = ollama_ai.query("Hello")
-#     print("Ollama Cloud Response:")
-#     print(ollama_reply)
 
-#     print("\n" + "=" * 50 + "\n")
+# Module-level instance of the configured primary LLM client
+try:
+    llm_client = get_llm_client()
+except Exception as e:
+    # Avoid failing on import if credentials are not yet set up
+    llm_client = None
 
-#     # Groq
-#     groq_ai = GroqCloudClient()
-
-#     groq_reply = groq_ai.query("Hello")
-#     print("Groq Response:")
-#     print(groq_reply)
